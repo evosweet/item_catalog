@@ -1,0 +1,16 @@
+{% extends "index.html" %} {% block head%}
+<div class="span4 text-center">
+    <p class="lead">
+        <h3>Restaurant</h3>
+    </p>
+</div>
+{% endblock %} {% block content %}
+<form method="POST" action="{{url_for('editRestaurant', restaurant_id=restaurant.id)}}">
+    <div class="form-group text-left">
+        <label for="name">Restaurant Name</label>
+        <input type="text" name="name" class="form-control" value="{{restaurant['name']}}"> 
+        <button type="submit" class="btn btn-default form-control">Update</button>
+        <a href="{{url_for('showRestaurants')}}" class="btn btn-default form-control" role="button">Cancel</a>
+    </div>
+</form>
+{% endblock %}

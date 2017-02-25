@@ -1,0 +1,54 @@
+<!DOCTYPE>
+<html lang="en">
+<head>
+    <script src="{{ url_for('static', filename='jquery/jquery.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.js')}}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bootstrap/css/bootstrap.css')}}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="row col-md-4"></div>
+        <div class="row col-md-4">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages%}
+                        <div class="alert alert-warning alert-dismissible" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                            <strong>System Message!</strong> {{message}}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith%}
+            {% block head%}
+                <div class="span4 text-center">
+                    <p class="lead">
+                        <h3>Restaurants Management</h3>
+                        <a href="{{url_for('newRestaurant')}}" class="btn btn-primary" role="button">New Restaurant</a>
+                    </p>
+                </div>
+            {% endblock %} 
+            <p>
+                {% block content %} {% if restaurants%}
+                <div class="list-group">
+                    {% for restaurant in restaurants %}
+                           <div class="panel panel-default">
+                            <div class="panel-heading">{{restaurant.name}} Restaurant</div>
+                            <div class="panel-body">
+                                <a href="{{ url_for('showMenu', restaurant_id=restaurant.id) }}" class="btn btn-default form-control" role="button">Show Menu</a>
+                                <a href="{{ url_for('editRestaurant', restaurant_id=restaurant.id) }}" class="btn btn-default form-control" role="button">Edit</a>
+                                <a href="{{url_for('deleteRestaurant', restaurant_id=restaurant.id)}}" class="btn btn-default form-control" role="button">Delete</a>
+                            </div>
+                           </div>
+                    {%endfor%}
+                </div>
+                {% else %}
+                <h2 class="text-center"><span class="badge badge-default">No Restrants</span></h2>
+                {% endif %} {% endblock %}
+            </p>
+        </div>
+        <div class="row col-md-4"></div>
+    </div>
+</body>
+
+</html>
