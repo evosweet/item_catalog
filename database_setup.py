@@ -5,6 +5,22 @@ from sqlalchemy.orm import relationship
 
 BASE = declarative_base()
 
+class User(BASE):
+    __tablename__ = 'user'
+    id = Column(
+        Integer, primary_key=True
+    )
+    name = Column(
+        String(250), nullable=False
+    )
+    email = Column(
+        String(250), nullable=False
+    )
+    picture = Column(
+        String(240)
+    )
+
+
 class Restaurant(BASE):
     __tablename__ = 'restaurant'
 
@@ -14,6 +30,10 @@ class Restaurant(BASE):
     id = Column(
         Integer, primary_key=True
     )
+    user_id = Column(
+        Integer, ForeignKey('user.id')
+    )
+    user = relationship(User)
 
 
 class MenuItem(BASE):
@@ -33,7 +53,11 @@ class MenuItem(BASE):
     restaurant_id = Column(
         Integer, ForeignKey('restaurant.id')
     )
+    user_id = Column(
+        Integer, ForeignKey('user.id')
+    )
     restaurant = relationship(Restaurant)
+    user = relationship(User)
 
     @property
     def serialize(self):
@@ -44,6 +68,7 @@ class MenuItem(BASE):
             'price': self.price,
             'course': self.course,
         }
+
 
 
 ENGINE = create_engine('sqlite:///restaurantmenu.db')
