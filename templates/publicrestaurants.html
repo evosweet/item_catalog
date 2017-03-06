@@ -1,0 +1,20 @@
+{% extends "index.html" %} {% with messages = get_flashed_messages() %} {% if messages %} {% for message in messages%}
+<div class="alert alert-warning alert-dismissible" role="alert">
+    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    <strong>System Message!</strong> {{message}}
+</div>
+{% endfor %} {% endif %} {% endwith%} {% block head %}
+    <div class="text-center">
+			<a href="{{url_for('showLogin')}}">Click Here to Log in</a>
+	</div>
+{% endblock %}
+{% block content %} {% if restaurants %} {% for restaurant in restaurants%}
+<div class="panel panel-default">
+    <div class="panel-heading">{{restaurant.name}} Restaurant</div>
+    <div class="panel-body">
+        <a href="{{ url_for('showMenu', restaurant_id=restaurant.id) }}" class="btn btn-default form-control" role="button">Show Menu</a>
+    </div>
+</div>
+{% endfor %} {% else %}
+<h2 class="text-center"><span class="badge badge-default">No Menu Items</span></h2>
+{% endif %} {% endblock %}

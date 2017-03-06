@@ -132,64 +132,159 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
     login_session['access_token'] = credentials.access_token
-    print login_session, "mark 1"
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += """ " style = "width: 300px; height: 300px;border-radius: 
+    output += """ " style = "width: 300px; height: 300px;border-radius:
     150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> """
     flash("you are now logged in as %s" % login_session['username'])
-    user = getUserID(login_session['email'])
-    if user is None:
+    user_id = getUserID(login_session['email'])
+    if user_id is None:
         user_id = createUser(login_session)
         login_session['user_id'] = user_id
     else:
-        login_session['user_id'] = getUserInfo(User.id)
+        login_session['user_id'] = getUserInfo(user_id).id
     print "done!"
     return output
 
 
+@app.route('/fbconnect', methods=['POST'])
+def fbconnect():
+    if request.args.get('state') != login_session['state']:
+        response = make_response(json.dumps('Invalid state parameter.'), 401)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+    access_token = request.data
+    print "access token received %s " % access_token
+
+    app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
+        'web']['app_id']
+    app_secret = json.loads(
+        open('fb_client_secrets.json', 'r').read())['web']['app_secret']
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+        app_id, app_secret, access_token)
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[1]
+
+    # Use token to get user info from API
+    userinfo_url = "https://graph.facebook.com/v2.4/me"
+    # strip expire tag from access token
+    token = result.split("&")[0]
+
+    url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[1]
+    # print "url sent for API access:%s"% url
+    # print "API JSON result: %s" % result
+    data = json.loads(result)
+    login_session['provider'] = 'facebook'
+    login_session['username'] = data["name"]
+    login_session['email'] = data["email"]
+    login_session['facebook_id'] = data["id"]
+
+    # The token must be stored in the login_session in order to properly
+    # logout, let's strip out the information before the equals sign in our
+    # token
+    stored_token = token.split("=")[1]
+    login_session['access_token'] = stored_token
+
+    # Get user picture
+    url = 'https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200' % token
+    h = httplib2.Http()
+    result = h.request(url, 'GET')[1]
+    data = json.loads(result)
+
+    login_session['picture'] = data["data"]["url"]
+
+    # see if user exists
+    user_id = getUserID(login_session['email'])
+    if not user_id:
+        user_id = createUser(login_session)
+    login_session['user_id'] = user_id
+
+    output = ''
+    output += '<h1>Welcome, '
+    output += login_session['username']
+
+    output += '!</h1>'
+    output += '<img src="'
+    output += login_session['picture']
+    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+
+    flash("Now logged in as %s" % login_session['username'])
+    return output
+
+
+# @app.route('/gdisconnect')
+# def gdisconnect():
+#     access_token = login_session.get('access_token')
+#     print 'In gdisconnect access token is %s' % str(access_token)
+#     print 'User name is: '
+#     if access_token is None:
+#         print 'Access Token is None'
+#         response = make_response(json.dumps(
+#             'Current user not connected.'), 401)
+#         response.headers['Content-Type'] = 'application/json'
+#         return response
+#     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % str(
+#         login_session.get('access_token'))
+#     h = httplib2.Http()
+#     result = h.request(url, 'GET')[0]
+#     print 'result is '
+#     print result, login_session, "this is"
+#     if result['status'] == '200':
+#         del login_session['access_token']
+#         del login_session['gplus_id']
+#         del login_session['username']
+#         del login_session['email']
+#         del login_session['picture']
+#         response = make_response(json.dumps('Successfully disconnected.'), 200)
+#         response.headers['Content-Type'] = 'application/json'
+#         return response
+#     else:
+#         response = make_response(json.dumps(
+#             'Failed to revoke token for given user.', 400))
+#         response.headers['Content-Type'] = 'application/json'
+#         return response
+
+# # JSON APIs to view Restaurant Information
 @app.route('/gdisconnect')
 def gdisconnect():
-    access_token = login_session.get('access_token')
-    print 'In gdisconnect access token is %s' % str(access_token)
-    print 'User name is: '
-    print login_session.get('username')
-    if access_token is None:
-        print 'Access Token is None'
-        response = make_response(json.dumps(
-            'Current user not connected.'), 401)
+    # Only disconnect a connected user.
+    credentials = login_session.get('credentials')
+    if credentials is None:
+        response = make_response(
+            json.dumps('Current user not connected.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
-    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % str(
-        login_session.get('access_token'))
+    access_token = credentials.access_token
+    url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
-    print 'result is '
-    print result, login_session, "this is"
-    if result['status'] == '200':
-        del login_session['access_token']
-        del login_session['gplus_id']
-        del login_session['username']
-        del login_session['email']
-        del login_session['picture']
-        response = make_response(json.dumps('Successfully disconnected.'), 200)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-    else:
-        response = make_response(json.dumps(
-            'Failed to revoke token for given user.', 400))
+    if result['status'] != '200':
+        # For whatever reason, the given token was invalid.
+        response = make_response(
+            json.dumps('Failed to revoke token for given user.'), 400)
         response.headers['Content-Type'] = 'application/json'
         return response
 
-# JSON APIs to view Restaurant Information
 
+@app.route('/fbdisconnect')
+def fbdisconnect():
+    facebook_id = login_session['facebook_id']
+    # The access token must me included to successfully logout
+    access_token = login_session['access_token']
+    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
+    h = httplib2.Http()
+    result = h.request(url, 'DELETE')[1]
+    return "you have been logged out"
 
 @app.route('/restaurant/<int:restaurant_id>/menu/JSON')
 def restaurantMenuJSON(restaurant_id):
+    """ return list of restaurants in JSON """
     restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
     items = session.query(MenuItem).filter_by(
         restaurant_id=restaurant_id).all()
@@ -198,6 +293,7 @@ def restaurantMenuJSON(restaurant_id):
 
 @app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/JSON')
 def menuItemJSON(restaurant_id, menu_id):
+    """ return list of menu items in JSON """
     Menu_Item = session.query(MenuItem).filter_by(id=menu_id).one()
     return jsonify(Menu_Item=Menu_Item.serialize)
 
@@ -208,7 +304,10 @@ def menuItemJSON(restaurant_id, menu_id):
 def showRestaurants():
     """ Show All Restaurants """
     restaurants = session.query(Restaurant).order_by(desc(Restaurant.id)).all()
-    return render_template('index.html', restaurants=restaurants)
+    if 'username' not in login_session:
+        return render_template('publicrestaurants.html', restaurants=restaurants)
+    else:
+        return render_template('index.html', restaurants=restaurants)
 
 
 # Create new restrant
@@ -219,7 +318,8 @@ def newRestaurant():
         return redirect(url_for('showLogin'))
     if request.method == 'POST':
         req = request.form
-        restaurant = Restaurant(name=req['name'])
+        restaurant = Restaurant(
+            name=req['name'], user_id=login_session['user_id'])
         session.add(restaurant)
         session.commit()
         flash("New Restaurant Created")
@@ -236,6 +336,9 @@ def editRestaurant(restaurant_id):
     if 'username' not in login_session:
         return redirect(url_for('showLogin'))
     restaurant = session.query(Restaurant).get(restaurant_id)
+    if login_session['user_id'] != restaurant.user_id:
+        flash("Your Don't have access to this Restaurant")
+        return redirect(url_for('showRestaurants'))
     if request.method == 'POST':
         req = request.form
         restaurant.name = req['name']
@@ -254,6 +357,9 @@ def deleteRestaurant(restaurant_id):
     if 'username' not in login_session:
         return redirect(url_for('showLogin'))
     restaurant = session.query(Restaurant).get(restaurant_id)
+    if login_session['user_id'] != restaurant.user_id:
+        flash("Your Don't have access to this Restaurant")
+        return redirect(url_for('showRestaurants'))
     if request.method == 'POST':
         session.delete(restaurant)
         session.commit()
@@ -272,7 +378,15 @@ def showMenu(restaurant_id):
     restaurant = session.query(Restaurant).get(restaurant_id)
     items = session.query(MenuItem).filter_by(
         restaurant_id=restaurant_id).all()
-    return render_template('showmenu.html', items=items, restaurant=restaurant)
+    if login_session['user_id'] is not None:
+        if restaurant.user_id == login_session['user_id']:
+            user_info = getUserInfo(restaurant.user_id)
+            return render_template('showmenu.html', items=items,
+                                   restaurant=restaurant, user_info=user_info)
+        else:
+            return render_template('publicmenu.html', items=items, restaurant=restaurant)
+    else:
+        return render_template('publicmenu.html', items=items, restaurant=restaurant)
 
 # Create a new menu item
 
@@ -287,7 +401,7 @@ def newMenuItem(restaurant_id):
         req = request.form
         item = MenuItem(name=req['name'], course=req['course'],
                         description=req['description'], price=req['price'],
-                        restaurant_id=restaurant_id)
+                        restaurant_id=restaurant_id, user_id=login_session['user_id'])
         session.add(item)
         session.commit()
         flash("Item Created")
@@ -306,6 +420,9 @@ def editMenuItem(restaurant_id, menu_id):
         return redirect(url_for('showLogin'))
     item = session.query(MenuItem).filter(
         MenuItem.restaurant_id == restaurant_id).filter(MenuItem.id == menu_id).one()
+    if login_session['user_id'] != item.user_id:
+        flash("Your Don't have access to this Restaurant")
+        return redirect(url_for('showRestaurants'))
     if request.method == 'POST':
         req = request.form
         item.name = req['name']
@@ -324,11 +441,14 @@ def editMenuItem(restaurant_id, menu_id):
            methods=['GET', 'POST'])
 def deleteMenuItem(restaurant_id, menu_id):
     """ Delete Menu Item """
+    item = session.query(MenuItem).filter(
+        MenuItem.restaurant_id == restaurant_id).filter(MenuItem.id == menu_id).one()
     if 'username' not in login_session:
         return redirect(url_for('showLogin'))
+    if login_session['user_id'] != item.user_id:
+        flash("Your Don't have access to this Restaurant")
+        return redirect(url_for('showRestaurants'))
     if request.method == 'POST':
-        item = session.query(MenuItem).filter(
-            MenuItem.restaurant_id == restaurant_id).filter(MenuItem.id == menu_id).one()
         session.delete(item)
         session.commit()
         flash("Item Deleted")
