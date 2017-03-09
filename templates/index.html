@@ -1,0 +1,79 @@
+<!DOCTYPE>
+<html lang="en">
+
+<head>
+    <script src="{{ url_for('static', filename='jquery/jquery.min.js')}}"></script>
+    <script src="{{ url_for('static', filename='script.js')}}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.js')}}"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='bootstrap/css/bootstrap.css')}}">
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-12 col-md-12">
+                <nav class="navbar navbar-default">
+                    <div class="container-fluid">
+                        <!-- Brand and toggle get grouped for better mobile display -->
+                        <div class="navbar-header">
+                            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                                <span class="sr-only">Toggle navigation</span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                            </button>
+                            <a class="navbar-brand" href="/">Hunts Catalog</a>
+                        </div>
+                        <!-- Collect the nav links, forms, and other content for toggling -->
+                        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                            <ul class="nav navbar-nav">
+                                {% block menu %}
+                                    <li class="active"><a href="/">Catalog<span class="sr-only">(current)</span></a></li>
+                                    <li><a href="{{url_for('fbdisconnect')}}">logout</a></li>
+                                    <li><a href="{{url_for('showNewCategory')}}">New Category</a></li>
+                                {% endblock %}
+                            </ul>
+                        </div>
+                        <!-- /.navbar-collapse -->
+                    </div>
+                    <!-- /.container-fluid -->
+                </nav>
+                <div class="row">
+                    <div class="col-sm-12 col-md-12">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages%}
+                                <div class="alert alert-warning alert-dismissible" role="alert">
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                    <strong>System Message!</strong> {{message}}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith%}
+                    </div>    
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-3 col-md-3"> 
+                {% block catalog %}
+                    {% if category %}
+                        <div class="list-group">
+                        {% for cat in category %}
+                            <a href="#" class="list-group-item list-group-item-success">{{cat.name}}</a>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                        <h2 class="text-center"><span class="badge badge-default">No Category </span></h2>
+                    {% endif %}
+                {% endblock %}
+            </div>
+            <div class="col-sm-9 col-md-9"> 
+                {% block item %}
+                    normal items
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

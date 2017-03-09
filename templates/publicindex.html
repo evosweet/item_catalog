@@ -1,0 +1,16 @@
+{% extends "index.html" %} {% block menu %}
+     <li class="active"><a href="/">Catalog<span class="sr-only">(current)</span></a></li>
+     <li><a href="{{url_for('login')}}">Login</a></li>
+{% endblock %}
+{% block catalog %}
+    {% if category %}
+        {% for cat in category %}
+            Public {{cat.name}}
+        {% endfor %}
+    {% else %}
+        <h2 class="text-center"><span class="badge badge-default">No Category </span></h2>
+    {% endif %}
+{% endblock %}
+{% block item %}
+    public normal items
+{% endblock %}
