@@ -1,4 +1,10 @@
-{% extends "index.html" %} {% block item %}
+{% extends "index.html" %} 
+{% block menu %}
+    <li class="active"><a href="/">Catalog<span class="sr-only">(current)</span></a></li>
+    <li><a href="{{url_for('fbdisconnect')}}">logout</a></li>
+    <li><a href="{{url_for('showNewCategory')}}">New Category</a></li>
+{% endblock %}
+{% block item %}
     <form method="POST">
         <div class="form-group">
             <label for="name">New Category Name</label>

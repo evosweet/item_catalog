@@ -25,6 +25,7 @@ BASE.metadata.bind = ENGINE
 DBSESSION = sessionmaker(bind=ENGINE)
 SESSION = DBSESSION()
 
+
 def createUser(login_session):
     newUser = User(name=login_session['username'], email=login_session['email'],
                    picture=login_session['picture'])
@@ -61,8 +62,8 @@ def fbconnect():
     app_secret = json.loads(
         open('fb_client_secrets.json', 'r').read())['web']['app_secret']
     url = 'https://graph.facebook.com/oauth/access_token?grant'\
-    '_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
-        app_id, app_secret, access_token)
+        '_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+            app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
 
@@ -104,17 +105,20 @@ def fbconnect():
     flash("Now logged in as %s" % login_session['username'])
     return "Processing"
 
+
 @app.route('/fbdisconnect')
 def fbdisconnect():
     facebook_id = login_session['facebook_id']
     # The access token must me included to successfully logout
     access_token = login_session['access_token']
-    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id, access_token)
+    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (
+        facebook_id, access_token)
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
     resp = make_response("you have been logged out")
-    resp.set_cookie('session', '', expires=0) #add session cookie expiration
+    resp.set_cookie('session', '', expires=0)  # add session cookie expiration
     return resp
+
 
 @app.route('/')
 @app.route('/category')
@@ -124,7 +128,8 @@ def showCategory():
     status = False
     if 'username' in login_session:
         status = True
-    return render_template('index.html', category=catquery, status=status)
+    return render_template('index.html', category=catquery, status=status, image_url=login_session['picture'])
+
 
 @app.route('/category/new/', methods=['GET', 'POST'])
 def showNewCategory():
@@ -134,25 +139,30 @@ def showNewCategory():
     else:
         if request.method == 'POST':
             req = request.form
-            newCategory = Category(name=req['name'], user_id=login_session['user_id'])
+            newCategory = Category(
+                name=req['name'], user_id=login_session['user_id'])
             SESSION.add(newCategory)
-            catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
+            catquery = SESSION.query(Category).order_by(
+                desc(Category.id)).all()
             flash("New Record Added !!!!!")
         return render_template('newcategory.html', category=catquery)
+
 
 @app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
 def editCategory(category_id):
     pass
 
+
 @app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
 def deleteCategory(category_id):
     pass
+
 
 @app.route('/item/<int:category_id>/')
 @app.route('/item/<int:category_id>/item/')
 def showItems(category_id):
     catquery = SESSION.query(Category).get(category_id)
-    items = SESSION.query(Item).filter_by(category_id=category_id).all()
+    items = SESSION.query(Item).filter_by(category_id=category_id).order_by('id desc').all()
     status = False
     if 'username' not in login_session:
         return render_template('publicitems.html', category_one=catquery, items=items)
@@ -160,13 +170,24 @@ def showItems(category_id):
         status = True
         return render_template('showitems.html', category_one=catquery, items=items, status=status)
 
+
 @app.route('/item/<int:category_id>/new/', methods=['GET', 'POST'])
 def newItem(category_id):
     if 'username' not in login_session:
         return redirect(url_for('login'))
     else:
         catquery = SESSION.query(Category).get(category_id)
-        return render_template('newitem.html', category_one=catquery)
+        if request.method == 'POST':
+            req = request.form
+            itemNew = Item(name=req['name'], description=req['description'],
+                           user_id=login_session['user_id'], category_id=category_id)
+            SESSION.add(itemNew)
+            SESSION.commit()
+            flash("New Record Added !!!!!")
+            return redirect(url_for('showItems', category_id=category_id))
+        else:
+            return render_template('newitem.html', category_one=catquery)
+
 
 @app.route('/login')
 def login():

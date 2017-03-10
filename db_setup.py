@@ -52,6 +52,9 @@ class Item(BASE):
     description = Column(
         String(250)
     )
+    image_path = Column(
+        String(250)
+    )
     category_id = Column(
         Integer, ForeignKey('category.id')
     )
