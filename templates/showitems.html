@@ -1,0 +1,20 @@
+{% extends "index.html" %}
+{% block catalog %}
+<div class="panel panel-default">
+    <div class="panel-body">
+        {{category_one.name}}
+    </div>
+    <div class="panel-footer">
+        <a href=""><i class=" icon-pencil icon-2x"></i>Edit</a><hr/>
+        <a href=""><i class=" icon-pencil icon-2x"></i>Delete</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block item %}
+<div class="panel panel-default">
+  <div class="panel-body">
+    <a href="{{ url_for('newItem', category_id=category_one.id) }}"><i class=" icon-pencil icon-2x"></i>Add New Item</a>
+  </div>
+</div>
+{% endblock %}

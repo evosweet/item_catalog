@@ -21,7 +21,7 @@ class User(BASE):
     )
 
 class Category(BASE):
-    __tablename__ = 'catgory'
+    __tablename__ = 'category'
     id = Column(
         Integer, primary_key=True
     )
@@ -52,8 +52,8 @@ class Item(BASE):
     description = Column(
         String(250)
     )
-    catgory_id = Column(
-        Integer, ForeignKey('catgory.id')
+    category_id = Column(
+        Integer, ForeignKey('category.id')
     )
     user_id = Column(
         Integer, ForeignKey('user.id')

@@ -117,13 +117,14 @@ def fbdisconnect():
     return resp
 
 @app.route('/')
-@app.route('/catgory')
-def showCatgory():
+@app.route('/category')
+def showCategory():
+    """ show all categories """
     catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
-    if 'username' not in login_session:
-        return render_template('publicindex.html', category=catquery)
-    else:
-        return render_template('index.html', category=catquery)
+    status = False
+    if 'username' in login_session:
+        status = True
+    return render_template('index.html', category=catquery, status=status)
 
 @app.route('/category/new/', methods=['GET', 'POST'])
 def showNewCategory():
@@ -135,11 +136,37 @@ def showNewCategory():
             req = request.form
             newCategory = Category(name=req['name'], user_id=login_session['user_id'])
             SESSION.add(newCategory)
-            SESSION.commit()
+            catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
             flash("New Record Added !!!!!")
-            return render_template('showcatgory.html', category=catquery)
-        else:
-            return render_template('newcategory.html', category=catquery)
+        return render_template('newcategory.html', category=catquery)
+
+@app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
+def editCategory(category_id):
+    pass
+
+@app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
+def deleteCategory(category_id):
+    pass
+
+@app.route('/item/<int:category_id>/')
+@app.route('/item/<int:category_id>/item/')
+def showItems(category_id):
+    catquery = SESSION.query(Category).get(category_id)
+    items = SESSION.query(Item).filter_by(category_id=category_id).all()
+    status = False
+    if 'username' not in login_session:
+        return render_template('publicitems.html', category_one=catquery, items=items)
+    else:
+        status = True
+        return render_template('showitems.html', category_one=catquery, items=items, status=status)
+
+@app.route('/item/<int:category_id>/new/', methods=['GET', 'POST'])
+def newItem(category_id):
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        catquery = SESSION.query(Category).get(category_id)
+        return render_template('newitem.html', category_one=catquery)
 
 @app.route('/login')
 def login():
