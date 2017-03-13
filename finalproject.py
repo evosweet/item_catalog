@@ -115,7 +115,11 @@ def fbdisconnect():
         facebook_id, access_token)
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
-    resp = make_response("you have been logged out")
+    output = """
+            <div class="alert alert-success" role="alert">You Are now Logged out</div>
+            <a href="/">Main Page</a>
+    """
+    resp = make_response(output)
     resp.set_cookie('session', '', expires=0)  # add session cookie expiration
     return resp
 
@@ -128,7 +132,10 @@ def showCategory():
     status = False
     if 'username' in login_session:
         status = True
-    return render_template('index.html', category=catquery, status=status, image_url=login_session['picture'])
+        return render_template('index.html', category=catquery, status=status,
+                               image_url=login_session['picture'])
+    else:
+        return render_template('index.html', category=catquery, status=status)
 
 
 @app.route('/category/new/', methods=['GET', 'POST'])
@@ -150,19 +157,42 @@ def showNewCategory():
 
 @app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
 def editCategory(category_id):
-    pass
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        catquery = SESSION.query(Category).get(category_id)
+        if request.method == 'POST':
+            req = request.form
+            catquery.name = req['name']
+            SESSION.commit()
+            flash("Record Updated !!")
+            return redirect(url_for('showCategory'))
+        else:
+            return render_template('editcategory.html', category_one=catquery)
 
 
 @app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
 def deleteCategory(category_id):
-    pass
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        category = SESSION.query(Category).get(category_id)
+        if request.method == 'POST':
+            SESSION.delete(category)
+            SESSION.commit()
+            flash("Record Deleted !!")
+            return redirect(url_for('showCategory'))
+        else:
+            return render_template('deleteCategory.html', category=category)
+
 
 
 @app.route('/item/<int:category_id>/')
 @app.route('/item/<int:category_id>/item/')
 def showItems(category_id):
     catquery = SESSION.query(Category).get(category_id)
-    items = SESSION.query(Item).filter_by(category_id=category_id).order_by('id desc').all()
+    items = SESSION.query(Item).filter_by(
+        category_id=category_id).order_by('id desc').all()
     status = False
     if 'username' not in login_session:
         return render_template('publicitems.html', category_one=catquery, items=items)
@@ -187,6 +217,16 @@ def newItem(category_id):
             return redirect(url_for('showItems', category_id=category_id))
         else:
             return render_template('newitem.html', category_one=catquery)
+
+
+def showItem(category_id, item_id):
+    pass
+
+def editItem(category_id, item_id):
+    pass
+
+def deleteItem(category_id, item_id):
+    pass
 
 
 @app.route('/login')

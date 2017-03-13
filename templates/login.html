@@ -1,7 +1,6 @@
-{% extends "index.html" %} 
-{% block menu %}
-{% endblock %}
-{% block item %}
+{% extends "default.html" %} 
+
+{% block content %}
 <script>
     window.fbAsyncInit = function () {
         FB.init({
@@ -53,11 +52,18 @@
             });
         });}
 </script>
-<div class="text-center">
-    <button class=" btn btn-default">
-        <fb:login-button scope="public_profile,email" onlogin="sendTokenToServer();">
-            <a href="javascript:sendTokenToServer()">Login with Facebook</a>
-        </fb:login-button>
-    </button>
+ <div class="row">
+    <div class="col-sm-12 col-md-12">
+        </br>
+    </div>
+</div>
+<div class="well well-sm">
+    <div class="text-center">
+        <button class=" btn btn-default glyphicon glyphicon-user">
+            <fb:login-button scope="public_profile,email" onlogin="sendTokenToServer();">
+                <a href="javascript:sendTokenToServer()">Login with Facebook</a>
+            </fb:login-button>
+        </button>
+    </div>
 </div>
 {% endblock %}

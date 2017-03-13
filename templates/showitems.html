@@ -7,8 +7,10 @@
         {{category_one.name}}
     </div>
     <div class="panel-footer">
-        <a href=""><i class=" icon-pencil icon-2x"></i>Edit</a><hr/>
-        <a href=""><i class=" icon-pencil icon-2x"></i>Delete</a>
+        <div class="btn-group" role="group">
+                <a href="{{url_for('editCategory', category_id=category_one.id)}}" class="btn btn-default" role="button">Edit</a>
+                <a href="{{url_for('deleteCategory', category_id=category_one.id)}}" class="btn btn-default" role="button">Delete</a>
+            </div>
     </div>
 </div>
 {% endblock %}
