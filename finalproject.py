@@ -140,6 +140,7 @@ def showCategory():
 
 @app.route('/category/new/', methods=['GET', 'POST'])
 def showNewCategory():
+    """ add new Category """
     catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
     if 'username' not in login_session:
         return redirect(url_for('login'))
@@ -157,10 +158,14 @@ def showNewCategory():
 
 @app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
 def editCategory(category_id):
+    """ edit category """
     if 'username' not in login_session:
         return redirect(url_for('login'))
     else:
         catquery = SESSION.query(Category).get(category_id)
+        if catquery.user_id != login_session['user_id']:
+            flash(" You don't have access to this record ")
+            return redirect(url_for('showCategory'))
         if request.method == 'POST':
             req = request.form
             catquery.name = req['name']
@@ -173,23 +178,28 @@ def editCategory(category_id):
 
 @app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
 def deleteCategory(category_id):
+    """ delete category """
     if 'username' not in login_session:
         return redirect(url_for('login'))
     else:
         category = SESSION.query(Category).get(category_id)
+        if category.user_id != login_session['user_id']:
+            flash(" You don't have access to this record ")
+            return redirect(url_for('showCategory'))
         if request.method == 'POST':
             SESSION.delete(category)
             SESSION.commit()
             flash("Record Deleted !!")
             return redirect(url_for('showCategory'))
         else:
-            return render_template('deleteCategory.html', category=category)
+            return render_template('deletecategory.html', category=category)
 
 
 
 @app.route('/item/<int:category_id>/')
 @app.route('/item/<int:category_id>/item/')
 def showItems(category_id):
+    """ show all items """
     catquery = SESSION.query(Category).get(category_id)
     items = SESSION.query(Item).filter_by(
         category_id=category_id).order_by('id desc').all()
@@ -203,6 +213,7 @@ def showItems(category_id):
 
 @app.route('/item/<int:category_id>/new/', methods=['GET', 'POST'])
 def newItem(category_id):
+    """ create new item """
     if 'username' not in login_session:
         return redirect(url_for('login'))
     else:
@@ -218,15 +229,54 @@ def newItem(category_id):
         else:
             return render_template('newitem.html', category_one=catquery)
 
-
+@app.route('/item/<int:category_id>/item/<int:item_id>/show')
 def showItem(category_id, item_id):
-    pass
+    """ show single item """
+    item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+        Item.id == item_id).one()
+    return render_template('showitem.html', item=item)
 
+@app.route('/item/<int:category_id>/item/<int:item_id>/edit', methods=['GET','POST'])
 def editItem(category_id, item_id):
-    pass
+    """ edit item """
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+            Item.id == item_id).one()
+        if item.user_id != login_session['user_id']:
+            flash(" You don't have access to edit this record !!")
+            return render_template('showitem.html', item=item)
+        else:
+            if request.method == 'POST':
+                req = request.form
+                item.name = req['name']
+                item.description = req['description']
+                SESSION.add(item)
+                SESSION.commit()
+                flash("record updated")
+                return render_template('showitem.html', item=item)
+            else:
+                return render_template('edititem.html', item=item)
 
+@app.route('/item/<int:category_id>/item/<int:item_id>/delete', methods=['GET','POST'])
 def deleteItem(category_id, item_id):
-    pass
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+            Item.id == item_id).one()
+        if item.user_id != login_session['user_id']:
+            flash(" You don't have access to edit this record !!")
+            return render_template('showitems.html', category_id=category_id)
+        else:
+            if request.method == 'POST':
+                SESSION.delete(item)
+                SESSION.commit()
+                flash("record deleted")
+                return render_template('showitems.html', category_id=category_id)
+            else:
+                return render_template('deleteitem.html', item=item)
 
 
 @app.route('/login')

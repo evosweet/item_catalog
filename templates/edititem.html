@@ -1,0 +1,32 @@
+{% extends "default.html" %}
+{% block content %}
+     <form method="POST" action="{{url_for('editItem', category_id=item.category_id, item_id=item.id)}}">
+        <div class="form-group">
+            <label for="name">Item Name</label>
+            <input type="text" class="form-control" name="name" value="{{item.name}}">
+        </div>
+        <div class="form-group">
+            <label for="name">Item Description</label>
+            <input type="text" class="form-control"  name="description" value="{{item.description}}">
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <a href="{{url_for('showItems', category_id=item.category_id)}}" class="btn btn-primary" role="button">Cancel</a>
+        </div>
+    </form>
+    <div>
+        <p>
+            <div class="btn-group" role="group" aria-label="...">
+                {% if item.image_path %}
+                <button type="button" class="btn btn-default">Edit Image</button>
+                <button type="button" class="btn btn-default"> Delete </button>
+                {% else %}
+                    <blockquote cite="">
+                        Add an image to your Item
+                    </blockquote>
+                   <button type="button" class="btn btn-default">Add Image</button>
+                {% endif %}
+            </div>
+        </p>
+    </div>
+{% endblock %}
