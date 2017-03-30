@@ -70,11 +70,14 @@ def fbconnect():
     # Use token to get user info from API
     userinfo_url = "https://graph.facebook.com/v2.4/me"
     # strip expire tag from access token
-    token = result.split("&")[0]
+    #token = result.split("&")[0]
+    data = json.loads(result)
+    token = 'access_token=' + data['access_token']
 
     url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
+    print result
     # print "url sent for API access:%s"% url
     # print "API JSON result: %s" % result
     data = json.loads(result)
@@ -105,7 +108,6 @@ def fbconnect():
     flash("Now logged in as %s" % login_session['username'])
     return "Processing"
 
-
 @app.route('/fbdisconnect')
 def fbdisconnect():
     facebook_id = login_session['facebook_id']
@@ -129,13 +131,14 @@ def fbdisconnect():
 def showCategory():
     """ show all categories """
     catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
+    itemquery = SESSION.query(Item).order_by(desc(Item.id)).all()
     status = False
     if 'username' in login_session:
         status = True
-        return render_template('index.html', category=catquery, status=status,
+        return render_template('index.html', category=catquery,itemquery=itemquery,  status=status,
                                image_url=login_session['picture'])
     else:
-        return render_template('index.html', category=catquery, status=status)
+        return render_template('index.html', category=catquery, status=status,itemquery=itemquery)
 
 
 @app.route('/category/new/', methods=['GET', 'POST'])
@@ -274,7 +277,7 @@ def deleteItem(category_id, item_id):
                 SESSION.delete(item)
                 SESSION.commit()
                 flash("record deleted")
-                return render_template('showitems.html', category_id=category_id)
+                return redirect(url_for('showItems', category_id=category_id))
             else:
                 return render_template('deleteitem.html', item=item)
 
