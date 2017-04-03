@@ -3,6 +3,9 @@ import requests
 import httplib2
 import random
 import string
+import os
+
+from werkzeug.utils import secure_filename
 
 from flask import Flask, render_template,\
     request, redirect, url_for, flash, jsonify,\
@@ -25,6 +28,10 @@ BASE.metadata.bind = ENGINE
 DBSESSION = sessionmaker(bind=ENGINE)
 SESSION = DBSESSION()
 
+#upload settings 
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+
 
 def createUser(login_session):
     newUser = User(name=login_session['username'], email=login_session['email'],
@@ -46,7 +53,6 @@ def getUserID(email):
         return user.id
     except:
         return None
-
 
 @app.route('/fbconnect', methods=['POST'])
 def fbconnect():
@@ -126,7 +132,19 @@ def fbdisconnect():
     return resp
 
 
-@app.route('/')
+@app.route('/itemsJson/<int:category_id>/items/JSON')
+def itemsJSON(category_id):
+    """ return list of items in JSON """
+    items = SESSION.query(Item).filter_by(
+        category_id=category_id).order_by('id desc').all()
+    return jsonify(Items=[i.serialize for i in items])
+
+@app.route('/itemJson/<int:category_id>/<int:item_id>/item/JSON')
+def itemJson(category_id, item_id):
+     item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+        Item.id == item_id).one()
+     return jsonify(Item=item.serialize)
+
 @app.route('/category')
 def showCategory():
     """ show all categories """
@@ -281,6 +299,41 @@ def deleteItem(category_id, item_id):
             else:
                 return render_template('deleteitem.html', item=item)
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/item/<int:category_id>/item/<int:item_id>/image', methods=['GET', 'POST'])
+def imageUpload(category_id, item_id):
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+            Item.id == item_id).one()
+        if item.user_id != login_session['user_id']:
+            flash(" You don't have access to add images to this record !!")
+            return render_template('showitems.html', category_id=category_id)
+        else:
+            if request.method == 'POST':
+                if 'file' not in request.files:
+                    flash('No file part')
+                    return redirect(request.url)
+                upload_file = request.files['file']
+                if upload_file.filename == '':
+                    flash('No file selected')
+                    return redirect(request.url)
+                if upload_file and allowed_file(upload_file.filename):
+                    filename = secure_filename(upload_file.filename)
+                    upload_file.save(os.path.join(app.config['UPLOAD_FOLDER'], str(
+                        item.id) + "_" + str(item.category_id) + "_" + filename))
+                    item.image_path = 'static/uploads/'+str(item.id) + "_" + \
+                    str(item.category_id) + "_" + filename
+                    SESSION.add(item)
+                    SESSION.commit()
+                    return "good upload"
+            else:
+                return render_template('uploadimage.html', item=item)
 
 @app.route('/login')
 def login():
@@ -292,5 +345,6 @@ def login():
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.debug = True
     app.run(host='0.0.0.0', port=5000)

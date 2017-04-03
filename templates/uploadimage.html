@@ -1,0 +1,10 @@
+{% extends "default.html" %}
+{% block content %}
+<form method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="name">Upload Image</label>
+        <input type="file" class="form-control" name="file">
+        <input type="submit" value="Upload">
+    </div>
+</form>
+{% endblock %}

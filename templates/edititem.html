@@ -24,7 +24,7 @@
                     <blockquote cite="">
                         Add an image to your Item
                     </blockquote>
-                   <button type="button" class="btn btn-default">Add Image</button>
+                   <a href="{{url_for('imageUpload', category_id=item.category_id, item_id=item.id)}}" class="btn btn-primary" role="button">Add Image</a>
                 {% endif %}
             </div>
         </p>
