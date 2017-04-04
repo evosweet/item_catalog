@@ -1,0 +1,35 @@
+{% extends "index.html" %} {%block profile%} {%endblock%} {% block catalog %}
+<div class="panel panel-default">
+    <div class="panel-body">
+        {{(category_one.name).upper()}}
+    </div>
+    <div class="panel-footer">
+        <div class="btn-group" role="group">
+            <a href="{{url_for('editCategory', category_id=category_one.id)}}" class="btn btn-default" role="button">Edit</a>
+            <a href="{{url_for('deleteCategory', category_id=category_one.id)}}" class="btn btn-default" role="button">Delete</a>
+        </div>
+    </div>
+</div>
+{% endblock %} {% block item %}
+<div class="panel panel-default">
+    <div class="panel-body">
+        <a href="{{ url_for('newItem', category_id=category_one.id) }}"><i class=" icon-pencil icon-2x"></i>Add New Item</a>
+    </div>
+</div>
+{% for item in items %}
+<div class="panel panel-default">
+    <div class="panel-heading">{{(item.name).upper()}}</div>
+    <div class="panel-body">
+        <p>
+            {{item.description}}
+        </p>
+    </div>
+    <div class="panel-footer">
+        <div class="btn-group" role="group">
+            <a href="{{url_for('showItem', category_id=category_one.id, item_id=item.id)}}" class="btn btn-default" role="button">Show</a>
+            <a href="{{url_for('editItem', category_id=category_one.id, item_id=item.id)}}" class="btn btn-default" role="button">Edit</a>
+            <a href="{{url_for('deleteItem', category_id=category_one.id, item_id=item.id)}}" class="btn btn-default" role="button">Delete</a>
+        </div>
+    </div>
+</div>
+{% endfor %} {% endblock %}

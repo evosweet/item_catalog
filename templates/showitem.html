@@ -1,0 +1,16 @@
+{% extends "default.html" %} {% block content %}
+<div class="panel panel-default">
+    <div class="panel-heading">{{(item.name).upper()}}</div>
+    <div class="panel-body">
+        <p>
+            {{item.description}}
+        </p>
+        <p>
+            <img src="/{{ item.image_path }}" class="img-responsive img-rounded" alt="Responsive image">
+        </p>
+    </div>
+    <div class="panel-footer">
+        <a href="{{url_for('showItems', category_id=item.category_id)}}" class="btn btn-default" role="button">Items</a>
+    </div>
+</div>
+{% endblock %}

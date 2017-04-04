@@ -1,0 +1,34 @@
+{% extends "default.html" %} {% block content %}
+<form method="POST" action="{{url_for('editItem', category_id=item.category_id, item_id=item.id)}}">
+    <div class="form-group">
+        <label for="name">Item Name</label>
+        <input type="text" class="form-control" name="name" value="{{item.name}}">
+    </div>
+    <div class="form-group">
+        <label for="name">Item Description</label>
+        <input type="text" class="form-control" name="description" value="{{item.description}}">
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Submit Changes</button>
+        <a href="{{url_for('showItems', category_id=item.category_id)}}" class="btn btn-primary" role="button">Cancel</a>
+    </div>
+</form>
+<div>
+    <p>
+        <div class="btn-group" role="group" aria-label="...">
+            {% if item.image_path %}
+            <img src="/{{ item.image_path }}" class="img-responsive img-rounded" alt="Responsive image">
+            </br>
+            <div class="form-group">
+                <a href="{{url_for('imageUpload', category_id=item.category_id, item_id=item.id)}}" class="btn btn-primary" role="button">Edit Image</a>
+                <a href="{{url_for('deleteImage', category_id=item.category_id, item_id=item.id)}}" class="btn btn-primary" role="button">Delete Image</a>
+            </div>
+            {% else %}
+            <blockquote cite="">
+                Add an image to your Item
+            </blockquote>
+            <a href="{{url_for('imageUpload', category_id=item.category_id, item_id=item.id)}}" class="btn btn-primary" role="button">Add Image</a>            {% endif %}
+        </div>
+    </p>
+</div>
+{% endblock %}
