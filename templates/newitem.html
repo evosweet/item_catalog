@@ -1,34 +1,31 @@
-{% extends "index.html" %}
-{% block menu %}
+{% extends "index.html" %} {% block menu %}
 <li class="active"><a href="/">Catalog<span class="sr-only">(current)</span></a></li>
 
-    <li><a href="{{url_for('fbdisconnect')}}">logout</a></li>
-    <li><a href="{{url_for('showNewCategory')}}">New Category</a></li>
-{% endblock %}
-{% block catalog %}
+<li><a href="{{url_for('fbdisconnect')}}">logout</a></li>
+<li><a href="{{url_for('showNewCategory')}}">New Category</a></li>
+{% endblock %} {% block catalog %}
 <div class="panel panel-default">
     <div class="panel-body">
         {{category_one.name}}
     </div>
     <div class="panel-footer">
-        <a href=""><i class=" icon-pencil icon-2x"></i>Edit</a><hr/>
+        <a href=""><i class=" icon-pencil icon-2x"></i>Edit</a>
+        <hr/>
         <a href=""><i class=" icon-pencil icon-2x"></i>Delete</a>
     </div>
 </div>
-{% endblock %}
-
-{% block item %}
-    <form method="POST">
-        <div class="form-group">
-            <label for="name">Name</label>
-            <input type="text" class="form-control" placeholder="Item Name" name="name">
-        </div>
-        <div class="form-group">
-            <label for="name">Description</label>
-            <input type="text" class="form-control" placeholder="Item Description" name="description">
-        </div>
-        <div class="form-group">
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </div>
-    </form>
+{% endblock %} {% block item %}
+<form method="POST">
+    <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" class="form-control" placeholder="Item Name" name="name">
+    </div>
+    <div class="form-group">
+        <label for="name">Description</label>
+        <input type="text" class="form-control" placeholder="Item Description" name="description">
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </div>
+</form>
 {% endblock %}

@@ -28,41 +28,41 @@ BASE.metadata.bind = ENGINE
 DBSESSION = sessionmaker(bind=ENGINE)
 SESSION = DBSESSION()
 
-#upload settings 
+# upload settings
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
+ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 
 def createUser(login_session):
-    newUser = User(name=login_session['username'], email=login_session['email'],
+    """ add new user to DB """
+    newuser = User(name=login_session['username'], email=login_session['email'],
                    picture=login_session['picture'])
-    SESSION.add(newUser)
+    SESSION.add(newuser)
     SESSION.commit()
     user = SESSION.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
 
 def getUserInfo(user_id):
+    """ get user data for exiting users """
     user = SESSION.query(User).filter_by(id=user_id).one()
     return user
 
 
 def getUserID(email):
-    try:
-        user = SESSION.query(User).filter_by(email=email).one()
-        return user.id
-    except:
-        return None
+    """ get user email address """
+    user = SESSION.query(User).filter_by(email=email).one()
+    return user.id
+
 
 @app.route('/fbconnect', methods=['POST'])
 def fbconnect():
+    """ connect and authenticate users with FB """
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
     access_token = request.data
-    print "access token received %s " % access_token
-
     app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
         'web']['app_id']
     app_secret = json.loads(
@@ -72,18 +72,15 @@ def fbconnect():
             app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
-
     # Use token to get user info from API
     userinfo_url = "https://graph.facebook.com/v2.4/me"
     # strip expire tag from access token
     #token = result.split("&")[0]
     data = json.loads(result)
     token = 'access_token=' + data['access_token']
-
     url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
-    print result
     # print "url sent for API access:%s"% url
     # print "API JSON result: %s" % result
     data = json.loads(result)
@@ -91,21 +88,17 @@ def fbconnect():
     login_session['username'] = data["name"]
     login_session['email'] = data["email"]
     login_session['facebook_id'] = data["id"]
-
     # The token must be stored in the login_session in order to properly
     # logout, let's strip out the information before the equals sign in our
     # token
     stored_token = token.split("=")[1]
     login_session['access_token'] = stored_token
-
     # Get user picture
     url = 'https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     data = json.loads(result)
-
     login_session['picture'] = data["data"]["url"]
-
     # see if user exists
     user_id = getUserID(login_session['email'])
     if not user_id:
@@ -113,6 +106,7 @@ def fbconnect():
     login_session['user_id'] = user_id
     flash("Now logged in as %s" % login_session['username'])
     return "Processing"
+
 
 @app.route('/fbdisconnect')
 def fbdisconnect():
@@ -139,12 +133,15 @@ def itemsJSON(category_id):
         category_id=category_id).order_by('id desc').all()
     return jsonify(Items=[i.serialize for i in items])
 
+
 @app.route('/itemJson/<int:category_id>/<int:item_id>/item/JSON')
 def itemJson(category_id, item_id):
-     item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+    item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
         Item.id == item_id).one()
-     return jsonify(Item=item.serialize)
+    return jsonify(Item=item.serialize)
 
+
+@app.route('/')
 @app.route('/category')
 def showCategory():
     """ show all categories """
@@ -153,10 +150,10 @@ def showCategory():
     status = False
     if 'username' in login_session:
         status = True
-        return render_template('index.html', category=catquery,itemquery=itemquery,  status=status,
+        return render_template('index.html', category=catquery, itemquery=itemquery, status=status,
                                image_url=login_session['picture'])
     else:
-        return render_template('index.html', category=catquery, status=status,itemquery=itemquery)
+        return render_template('index.html', category=catquery, status=status, itemquery=itemquery)
 
 
 @app.route('/category/new/', methods=['GET', 'POST'])
@@ -216,7 +213,6 @@ def deleteCategory(category_id):
             return render_template('deletecategory.html', category=category)
 
 
-
 @app.route('/item/<int:category_id>/')
 @app.route('/item/<int:category_id>/item/')
 def showItems(category_id):
@@ -250,6 +246,7 @@ def newItem(category_id):
         else:
             return render_template('newitem.html', category_one=catquery)
 
+
 @app.route('/item/<int:category_id>/item/<int:item_id>/show')
 def showItem(category_id, item_id):
     """ show single item """
@@ -257,7 +254,8 @@ def showItem(category_id, item_id):
         Item.id == item_id).one()
     return render_template('showitem.html', item=item)
 
-@app.route('/item/<int:category_id>/item/<int:item_id>/edit', methods=['GET','POST'])
+
+@app.route('/item/<int:category_id>/item/<int:item_id>/edit', methods=['GET', 'POST'])
 def editItem(category_id, item_id):
     """ edit item """
     if 'username' not in login_session:
@@ -280,8 +278,10 @@ def editItem(category_id, item_id):
             else:
                 return render_template('edititem.html', item=item)
 
-@app.route('/item/<int:category_id>/item/<int:item_id>/delete', methods=['GET','POST'])
+
+@app.route('/item/<int:category_id>/item/<int:item_id>/delete', methods=['GET', 'POST'])
 def deleteItem(category_id, item_id):
+    """ delete item """
     if 'username' not in login_session:
         return redirect(url_for('login'))
     else:
@@ -299,13 +299,16 @@ def deleteItem(category_id, item_id):
             else:
                 return render_template('deleteitem.html', item=item)
 
+
 def allowed_file(filename):
+    """ validate file types """
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route('/item/<int:category_id>/item/<int:item_id>/image', methods=['GET', 'POST'])
 def imageUpload(category_id, item_id):
+    """" upload images """
     if 'username' not in login_session:
         return redirect(url_for('login'))
     else:
@@ -327,16 +330,35 @@ def imageUpload(category_id, item_id):
                     filename = secure_filename(upload_file.filename)
                     upload_file.save(os.path.join(app.config['UPLOAD_FOLDER'], str(
                         item.id) + "_" + str(item.category_id) + "_" + filename))
-                    item.image_path = 'static/uploads/'+str(item.id) + "_" + \
-                    str(item.category_id) + "_" + filename
+                    item.image_path = 'static/uploads/' + str(item.id) + "_" + \
+                        str(item.category_id) + "_" + filename
                     SESSION.add(item)
                     SESSION.commit()
-                    return "good upload"
+                    return redirect(url_for('editItem', category_id=category_id, item_id=item_id))
             else:
                 return render_template('uploadimage.html', item=item)
 
+@app.route('/item/<int:category_id>/item/<int:item_id>/deleteImage', methods=['GET', 'POST'])
+def deleteImage(category_id, item_id):
+    """ edit image """
+    if 'username' not in login_session:
+        return redirect(url_for('login'))
+    else:
+        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
+            Item.id == item_id).one()
+        if item.user_id != login_session['user_id']:
+            flash(" You don't have access to delete this image!!")
+            return render_template('showitems.html', category_id=category_id)
+        else:
+            item.image_path = None
+            SESSION.add(item)
+            SESSION.commit()
+            return redirect(url_for('editItem', category_id=category_id, item_id=item_id))
+
+
 @app.route('/login')
 def login():
+    """ login route """
     catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in xrange(32))

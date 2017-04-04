@@ -1,12 +1,11 @@
-{% extends "default.html" %}
-{% block content %}
-    <form method="POST" action="{{url_for('deleteCategory', category_id=category.id)}}"> 
-        <div class="form-group">
-            <div class="alert alert-danger" role="alert"> Delete {{category.name}} ?? </div>
-        </div>
-        <div class="form-group">
-            <button type="submit" class="btn btn-primary">Delete</button>
-            <a href="{{url_for('showCategory', category_id=category.id)}}" class="btn btn-primary" role="button">Cancel</a>
-        </div>
-    </form>
-{% endblock %} 
+{% extends "default.html" %} {% block content %}
+<form method="POST" action="{{url_for('deleteCategory', category_id=category.id)}}">
+    <div class="form-group">
+        <div class="alert alert-danger" role="alert"> Delete {{category.name}} ?? </div>
+    </div>
+    <div class="form-group">
+        <button type="submit" class="btn btn-primary">Delete</button>
+        <a href="{{url_for('showCategory', category_id=category.id)}}" class="btn btn-primary" role="button">Cancel</a>
+    </div>
+</form>
+{% endblock %}

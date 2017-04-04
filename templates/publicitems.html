@@ -1,23 +1,14 @@
-{% extends "index.html" %}
-{% block catalog %}
-   <div class="panel panel-default">
+{% extends "index.html" %} {% block catalog %}
+<div class="panel panel-default">
     <div class="panel-body">
         {{category_one.name}}
     </div>
 </div>
-{% endblock %}
-
-{% block item %}
-{% if items %}
-{% for item in items %}
-    <div class="panel panel-default">
-        <div class="panel-heading">{{item.name}}</div>
-        <div class="panel-body">
-            <a href="{{url_for('showItem', category_id=category_one.id, item_id=item.id)}}" class="btn btn-default" role="button">Show Item</a>
-        </div>
+{% endblock %} {% block item %} {% if items %} {% for item in items %}
+<div class="panel panel-default">
+    <div class="panel-heading">{{item.name}}</div>
+    <div class="panel-body">
+        <a href="{{url_for('showItem', category_id=category_one.id, item_id=item.id)}}" class="btn btn-default" role="button">Show Item</a>
     </div>
-{% endfor %}
-{% else %}
-    No Items
-{% endif%}
-{% endblock %}
+</div>
+{% endfor %} {% else %} No Items {% endif%} {% endblock %}
