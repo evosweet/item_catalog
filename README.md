@@ -20,7 +20,7 @@
 
 
 #### How to start application
-- [Clone Git Reop](https://github.com/evosweet/item_catalog.git)
+- [Clone Git Repository](https://github.com/evosweet/item_catalog.git)
 - Install above listed dependencies
 - Run commands from the application root folder ``` python finalproject.py ```
 - navigate to url ``` http://localhost:5000/ ```
