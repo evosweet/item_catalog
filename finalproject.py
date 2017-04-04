@@ -18,12 +18,12 @@ from db_setup import BASE, User, Category, Item
 
 
 from flask import session as login_session
-from flask_wtf.csrf import CSRFProtect
+#from flask_wtf.csrf import CSRFProtect
 
 
 app = Flask(__name__)
-csrf = CSRFProtect(app)
-csrf.init_app(app)
+#csrf = CSRFProtect(app)
+#csrf.init_app(app)
 
 ENGINE = create_engine('sqlite:///category.db')
 BASE.metadata.bind = ENGINE
