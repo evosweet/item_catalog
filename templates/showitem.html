@@ -6,9 +6,15 @@
             {{item.description}}
         </p>
         <p>
-            <img src="/{{ item.image_path }}" class="img-responsive img-rounded" alt="Responsive image">
+            {% if item.image_path %}
+            <img src="/{{ item.image_path }}" class="img-responsive img-rounded" alt="Responsive image"> 
+            {% else %}
+            <blockquote cite="">
+                Add an image to your Item
+            </blockquote>
         </p>
     </div>
+    {% endif %}
     <div class="panel-footer">
         <a href="{{url_for('showItems', category_id=item.category_id)}}" class="btn btn-default" role="button">Items</a>
     </div>
