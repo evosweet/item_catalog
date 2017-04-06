@@ -6,6 +6,7 @@ import string
 import os
 
 from werkzeug.utils import secure_filename
+from functools import wraps
 
 from flask import Flask, render_template,\
     request, redirect, url_for, flash, jsonify,\
@@ -18,12 +19,8 @@ from db_setup import BASE, User, Category, Item
 
 
 from flask import session as login_session
-#from flask_wtf.csrf import CSRFProtect
-
 
 app = Flask(__name__)
-#csrf = CSRFProtect(app)
-#csrf.init_app(app)
 
 ENGINE = create_engine('sqlite:///category.db')
 BASE.metadata.bind = ENGINE
@@ -38,7 +35,8 @@ ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 def createUser(login_session):
     """ add new user to DB """
-    newuser = User(name=login_session['username'], email=login_session['email'],
+    newuser = User(name=login_session['username'],
+                   email=login_session['email'],
                    picture=login_session['picture'])
     SESSION.add(newuser)
     SESSION.commit()
@@ -46,16 +44,34 @@ def createUser(login_session):
     return user.id
 
 
+def login_required(f):
+    """ user login check """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' in login_session:
+            return f(*args, **kwargs)
+        else:
+            flash("access denied")
+            return redirect('/login')
+    return decorated_function
+
+
 def getUserInfo(user_id):
     """ get user data for exiting users """
-    user = SESSION.query(User).filter_by(id=user_id).one()
-    return user
+    try:
+        user = SESSION.query(User).filter_by(id=user_id).one()
+        return user
+    except Exception as e:
+        return None
 
 
 def getUserID(email):
     """ get user email address """
-    user = SESSION.query(User).filter_by(email=email).one()
-    return user.id
+    try:
+        user = SESSION.query(User).filter_by(email=email).one()
+        return user.id
+    except Exception as e:
+        return None
 
 
 @app.route('/fbconnect', methods=['POST'])
@@ -71,17 +87,19 @@ def fbconnect():
     app_secret = json.loads(
         open('fb_client_secrets.json', 'r').read())['web']['app_secret']
     url = 'https://graph.facebook.com/oauth/access_token?grant'\
-        '_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+        '_type=fb_exchange_token&client_id=%s'\
+        '&client_secret=%s&fb_exchange_token=%s' % (
             app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     # Use token to get user info from API
     userinfo_url = "https://graph.facebook.com/v2.4/me"
     # strip expire tag from access token
-    #token = result.split("&")[0]
+    # token = result.split("&")[0]
     data = json.loads(result)
     token = 'access_token=' + data['access_token']
-    url = 'https://graph.facebook.com/v2.4/me?%s&fields=name,id,email' % token
+    url = 'https://graph.facebook.com/v2.4/'\
+        'me?%s&fields=name,id,email' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     # print "url sent for API access:%s"% url
@@ -97,7 +115,8 @@ def fbconnect():
     stored_token = token.split("=")[1]
     login_session['access_token'] = stored_token
     # Get user picture
-    url = 'https://graph.facebook.com/v2.4/me/picture?%s&redirect=0&height=200&width=200' % token
+    url = 'https://graph.facebook.com/v2.4/me/'\
+        'picture?%s&redirect=0&height=200&width=200' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     data = json.loads(result)
@@ -121,15 +140,16 @@ def fbdisconnect():
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
     output = """
-            <div class="alert alert-success" role="alert">You Are now Logged out</div>
-            <a href="/">Main Page</a>
+        <div class="alert alert-success"
+            role="alert">You Are now Logged out</div>
+        <a href="/">Main Page</a>
     """
     resp = make_response(output)
     resp.set_cookie('session', '', expires=0)  # add session cookie expiration
     return resp
 
 
-@app.route('/itemsJson/<int:category_id>/items/JSON')
+@app.route('/itemsJson/<int:category_id>')
 def itemsJSON(category_id):
     """ return list of items in JSON """
     items = SESSION.query(Item).filter_by(
@@ -137,7 +157,7 @@ def itemsJSON(category_id):
     return jsonify(Items=[i.serialize for i in items])
 
 
-@app.route('/itemJson/<int:category_id>/<int:item_id>/item/JSON')
+@app.route('/itemJson/<int:category_id>/<int:item_id>')
 def itemJson(category_id, item_id):
     item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
         Item.id == item_id).one()
@@ -153,67 +173,64 @@ def showCategory():
     status = False
     if 'username' in login_session:
         status = True
-        return render_template('index.html', category=catquery, itemquery=itemquery, status=status,
+        return render_template('index.html', category=catquery,
+                               itemquery=itemquery, status=status,
                                image_url=login_session['picture'])
     else:
-        return render_template('index.html', category=catquery, status=status, itemquery=itemquery)
+        return render_template('index.html',
+                               category=catquery, status=status,
+                               itemquery=itemquery)
 
 
 @app.route('/category/new/', methods=['GET', 'POST'])
+@login_required
 def showNewCategory():
     """ add new Category """
     catquery = SESSION.query(Category).order_by(desc(Category.id)).all()
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
-    else:
-        if request.method == 'POST':
-            req = request.form
-            newCategory = Category(
-                name=req['name'], user_id=login_session['user_id'])
-            SESSION.add(newCategory)
-            catquery = SESSION.query(Category).order_by(
-                desc(Category.id)).all()
-            flash("New Record Added !!!!!")
-        return render_template('newcategory.html', category=catquery)
+    if request.method == 'POST':
+        req = request.form
+        newCategory = Category(name=req['name'],
+                               user_id=login_session['user_id'])
+        SESSION.add(newCategory)
+        catquery = SESSION.query(Category).order_by(
+            desc(Category.id)).all()
+        flash("New Record Added !!!!!")
+    return render_template('newcategory.html', category=catquery)
 
 
 @app.route('/category/<int:category_id>/edit/', methods=['GET', 'POST'])
+@login_required
 def editCategory(category_id):
     """ edit category """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    catquery = SESSION.query(Category).get(category_id)
+    if catquery.user_id != login_session['user_id']:
+        flash(" You don't have access to this record ")
+        return redirect(url_for('showCategory'))
+    if request.method == 'POST':
+        req = request.form
+        catquery.name = req['name']
+        SESSION.commit()
+        flash("Record Updated !!")
+        return redirect(url_for('showCategory'))
     else:
-        catquery = SESSION.query(Category).get(category_id)
-        if catquery.user_id != login_session['user_id']:
-            flash(" You don't have access to this record ")
-            return redirect(url_for('showCategory'))
-        if request.method == 'POST':
-            req = request.form
-            catquery.name = req['name']
-            SESSION.commit()
-            flash("Record Updated !!")
-            return redirect(url_for('showCategory'))
-        else:
-            return render_template('editcategory.html', category_one=catquery)
+        return render_template('editcategory.html', category_one=catquery)
 
 
 @app.route('/category/<int:category_id>/delete/', methods=['GET', 'POST'])
+@login_required
 def deleteCategory(category_id):
     """ delete category """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    category = SESSION.query(Category).get(category_id)
+    if category.user_id != login_session['user_id']:
+        flash(" You don't have access to this record ")
+        return redirect(url_for('showCategory'))
+    if request.method == 'POST':
+        SESSION.delete(category)
+        SESSION.commit()
+        flash("Record Deleted !!")
+        return redirect(url_for('showCategory'))
     else:
-        category = SESSION.query(Category).get(category_id)
-        if category.user_id != login_session['user_id']:
-            flash(" You don't have access to this record ")
-            return redirect(url_for('showCategory'))
-        if request.method == 'POST':
-            SESSION.delete(category)
-            SESSION.commit()
-            flash("Record Deleted !!")
-            return redirect(url_for('showCategory'))
-        else:
-            return render_template('deletecategory.html', category=category)
+        return render_template('deletecategory.html', category=category)
 
 
 @app.route('/item/<int:category_id>/')
@@ -225,29 +242,32 @@ def showItems(category_id):
         category_id=category_id).order_by('id desc').all()
     status = False
     if 'username' not in login_session:
-        return render_template('publicitems.html', category_one=catquery, items=items)
+        return render_template('publicitems.html',
+                               category_one=catquery, items=items)
     else:
         status = True
-        return render_template('showitems.html', category_one=catquery, items=items, status=status)
+        return render_template('showitems.html',
+                               category_one=catquery,
+                               items=items, status=status)
 
 
 @app.route('/item/<int:category_id>/new/', methods=['GET', 'POST'])
+@login_required
 def newItem(category_id):
     """ create new item """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    catquery = SESSION.query(Category).get(category_id)
+    if request.method == 'POST':
+        req = request.form
+        itemNew = Item(name=req['name'],
+                       description=req['description'],
+                       user_id=login_session['user_id'],
+                       category_id=category_id)
+        SESSION.add(itemNew)
+        SESSION.commit()
+        flash("New Record Added !!!!!")
+        return redirect(url_for('showItems', category_id=category_id))
     else:
-        catquery = SESSION.query(Category).get(category_id)
-        if request.method == 'POST':
-            req = request.form
-            itemNew = Item(name=req['name'], description=req['description'],
-                           user_id=login_session['user_id'], category_id=category_id)
-            SESSION.add(itemNew)
-            SESSION.commit()
-            flash("New Record Added !!!!!")
-            return redirect(url_for('showItems', category_id=category_id))
-        else:
-            return render_template('newitem.html', category_one=catquery)
+        return render_template('newitem.html', category_one=catquery)
 
 
 @app.route('/item/<int:category_id>/item/<int:item_id>/show')
@@ -258,49 +278,49 @@ def showItem(category_id, item_id):
     return render_template('showitem.html', item=item)
 
 
-@app.route('/item/<int:category_id>/item/<int:item_id>/edit', methods=['GET', 'POST'])
+@app.route('/item/<int:category_id>/item/<int:item_id>/edit',
+           methods=['GET', 'POST'])
+@login_required
 def editItem(category_id, item_id):
     """ edit item """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    item = SESSION.query(Item).filter(
+        Item.category_id == category_id).filter(
+        Item.id == item_id).one()
+    if item.user_id != login_session['user_id']:
+        flash(" You don't have access to edit this record !!")
+        return render_template('showitem.html', item=item)
     else:
-        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
-            Item.id == item_id).one()
-        if item.user_id != login_session['user_id']:
-            flash(" You don't have access to edit this record !!")
+        if request.method == 'POST':
+            req = request.form
+            item.name = req['name']
+            item.description = req['description']
+            SESSION.add(item)
+            SESSION.commit()
+            flash("record updated")
             return render_template('showitem.html', item=item)
         else:
-            if request.method == 'POST':
-                req = request.form
-                item.name = req['name']
-                item.description = req['description']
-                SESSION.add(item)
-                SESSION.commit()
-                flash("record updated")
-                return render_template('showitem.html', item=item)
-            else:
-                return render_template('edititem.html', item=item)
+            return render_template('edititem.html', item=item)
 
 
-@app.route('/item/<int:category_id>/item/<int:item_id>/delete', methods=['GET', 'POST'])
+@app.route('/item/<int:category_id>/item/<int:item_id>/delete',
+           methods=['GET', 'POST'])
+@login_required
 def deleteItem(category_id, item_id):
     """ delete item """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    item = SESSION.query(Item).filter(
+        Item.category_id == category_id).filter(
+        Item.id == item_id).one()
+    if item.user_id != login_session['user_id']:
+        flash(" You don't have access to edit this record !!")
+        return redirect(url_for('showItems', category_id=category_id))
     else:
-        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
-            Item.id == item_id).one()
-        if item.user_id != login_session['user_id']:
-            flash(" You don't have access to edit this record !!")
-            return render_template('showitems.html', category_id=category_id)
+        if request.method == 'POST':
+            SESSION.delete(item)
+            SESSION.commit()
+            flash("record deleted")
+            return redirect(url_for('showItems', category_id=category_id))
         else:
-            if request.method == 'POST':
-                SESSION.delete(item)
-                SESSION.commit()
-                flash("record deleted")
-                return redirect(url_for('showItems', category_id=category_id))
-            else:
-                return render_template('deleteitem.html', item=item)
+            return render_template('deleteitem.html', item=item)
 
 
 def allowed_file(filename):
@@ -309,54 +329,62 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/item/<int:category_id>/item/<int:item_id>/image', methods=['GET', 'POST'])
+@app.route('/item/<int:category_id>/item/<int:item_id>/image',
+           methods=['GET', 'POST'])
+@login_required
 def imageUpload(category_id, item_id):
     """" upload images """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    item = SESSION.query(Item).filter(
+        Item.category_id == category_id).filter(
+        Item.id == item_id).one()
+    if item.user_id != login_session['user_id']:
+        flash(" You don't have access to add images to this record !!")
+        return render_template('showitems.html', category_id=category_id)
     else:
-        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
-            Item.id == item_id).one()
-        if item.user_id != login_session['user_id']:
-            flash(" You don't have access to add images to this record !!")
-            return render_template('showitems.html', category_id=category_id)
+        if request.method == 'POST':
+            if 'file' not in request.files:
+                flash('No file part')
+                return redirect(request.url)
+            upload_file = request.files['file']
+            if upload_file.filename == '':
+                flash('No file selected')
+                return redirect(request.url)
+            if upload_file and allowed_file(upload_file.filename):
+                filename = secure_filename(upload_file.filename)
+                upload_file.save(
+                    os.path.join(
+                        app.config['UPLOAD_FOLDER'],
+                        str(item.id) + "_" +
+                        str(item.category_id) + "_" + filename))
+                item.image_path = 'static/uploads/' + str(item.id) \
+                    + "_" + str(item.category_id) + "_" + filename
+                SESSION.add(item)
+                SESSION.commit()
+                return redirect(url_for('editItem',
+                                        category_id=category_id,
+                                        item_id=item_id))
         else:
-            if request.method == 'POST':
-                if 'file' not in request.files:
-                    flash('No file part')
-                    return redirect(request.url)
-                upload_file = request.files['file']
-                if upload_file.filename == '':
-                    flash('No file selected')
-                    return redirect(request.url)
-                if upload_file and allowed_file(upload_file.filename):
-                    filename = secure_filename(upload_file.filename)
-                    upload_file.save(os.path.join(app.config['UPLOAD_FOLDER'], str(
-                        item.id) + "_" + str(item.category_id) + "_" + filename))
-                    item.image_path = 'static/uploads/' + str(item.id) + "_" + \
-                        str(item.category_id) + "_" + filename
-                    SESSION.add(item)
-                    SESSION.commit()
-                    return redirect(url_for('editItem', category_id=category_id, item_id=item_id))
-            else:
-                return render_template('uploadimage.html', item=item)
+            return render_template('uploadimage.html', item=item)
 
-@app.route('/item/<int:category_id>/item/<int:item_id>/deleteImage', methods=['GET', 'POST'])
+
+@app.route('/item/<int:category_id>/item/<int:item_id>/deleteImage',
+           methods=['GET', 'POST'])
+@login_required
 def deleteImage(category_id, item_id):
     """ edit image """
-    if 'username' not in login_session:
-        return redirect(url_for('login'))
+    item = SESSION.query(Item).filter(
+        Item.category_id == category_id).filter(
+        Item.id == item_id).one()
+    if item.user_id != login_session['user_id']:
+        flash(" You don't have access to delete this image!!")
+        return render_template('showitems.html', category_id=category_id)
     else:
-        item = SESSION.query(Item).filter(Item.category_id == category_id).filter(
-            Item.id == item_id).one()
-        if item.user_id != login_session['user_id']:
-            flash(" You don't have access to delete this image!!")
-            return render_template('showitems.html', category_id=category_id)
-        else:
-            item.image_path = None
-            SESSION.add(item)
-            SESSION.commit()
-            return redirect(url_for('editItem', category_id=category_id, item_id=item_id))
+        item.image_path = None
+        SESSION.add(item)
+        SESSION.commit()
+        return redirect(url_for('editItem',
+                                category_id=category_id,
+                                item_id=item_id))
 
 
 @app.route('/login')
